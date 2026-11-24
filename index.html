@@ -17,7 +17,7 @@ canvas{display:block;width:100%;height:100%}
 #w.fx-playing #views,#w.fx-playing #hud,#w.fx-playing #spinWrap,
 #w.menu-open #views,#w.menu-open #hud,#w.menu-open #spinWrap{opacity:0;visibility:hidden;pointer-events:none}
 
-/* 左上：メニュー・視点ボタン */
+/* 左上：メニュー(練習時は退出)・視点ボタン */
 #views{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));left:calc(12px + env(safe-area-inset-left,0px));display:flex;align-items:center;gap:8px;z-index:2;flex-wrap:wrap}
 #views button,#spinBtns button,#spinToggle{appearance:none;border:1px solid var(--bd);background:var(--panel);color:var(--panel-fg);border-radius:8px;font:600 12px/1.2 inherit;padding:7px 11px;cursor:pointer;backdrop-filter:blur(8px);user-select:none;-webkit-user-select:none;display:inline-flex;align-items:center;justify-content:center}
 #vRot90{padding:6px 9px}
@@ -312,7 +312,7 @@ canvas{display:block;width:100%;height:100%}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script async src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.5/peerjs.min.js" onerror="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js';document.head.appendChild(s)"></script>
 <script>
 // 単位=インチ。フェルト面が y=0、ボール半径 1.125、プレイ面 100x50（9フィート台）
 const V2=THREE.Vector2,V3=THREE.Vector3,PI=Math.PI,BALL_R=1.125,FELT_Y=.02,BALL_Y=FELT_Y+BALL_R;
@@ -461,7 +461,7 @@ add(extr(new THREE.Shape(bd),1.2),mSlate,-1.2,false);
 {const s=rr(59.92,34.92,2.92);s.holes.push(new THREE.Path(bite(.08,.25)));add(extr(s,3.34,.08),mWood,-1.92)}
 {const s=new THREE.Shape(bite(.55,.55));s.holes.push(new THREE.Path(bite(0,.20)));add(extr(s,.04),mChrome,1.5)}
 
-// ---------- クッション（見た目と当たり判定用線分を同時生成）----------
+// ---------- クッション ----------
 const wallSegs=[];
 CU.forEach(([ax,ay,bx,by,nx,ny,kA,kB])=>{
   const L=Math.hypot(bx-ax,by-ay),dx=(bx-ax)/L,dy=(by-ay)/L,c=28;
@@ -669,9 +669,9 @@ function updatePocketFx(dt){
 }
 
 // ---------- 9ボール ゲーム進行・ルール管理 ----------
-const hudEl=document.getElementById('hud'),turnBadge=document.getElementById('turnBadge'),targetNum=document.getElementById('targetNum'),msgEl=document.getElementById('msg'),targetBadge=document.getElementById('targetBadge');
+const hudEl=document.getElementById('hud'),turnBadge=document.getElementById('turnBadge'),targetNum=document.getElementById('targetNum'),msgEl=document.getElementById('msg'),targetBadge=document.getElementById('targetBadge'),menuBtn=document.getElementById('menuBtn');
 let gameMode='2p',hasStarted=false,menuOpen=true,turn=1,winner=0,ballInHand=false,cpuTimer=0;
-let myPlayer=1,netPeer=null,netConn=null,netIsHost=false,netLobbyMode=false,syncAcc=0,lastHudMsg='ブレイクショット';
+let myPlayer=1,netPeer=null,netConn=null,netBc=null,netConnected=false,netIsHost=false,netLobbyMode=false,netTimer=null,syncAcc=0,lastHudMsg='ブレイクショット';
 const shot={active:false,targetNum:1,firstHit:null,railAfterHit:false,pocketed:[],jumped:[],scratched:false};
 function lowestBall(){
   for(let n=1;n<=9;n++)if(!balls[n].settled&&balls[n].y>=0)return n;
@@ -705,6 +705,9 @@ function updateHud(text){
   }
   msgEl.textContent=lastHudMsg;
 }
+function syncMenuButtonLabel(){
+  menuBtn.textContent=gameMode==='solo'?'退出':'メニュー';
+}
 hudEl.addEventListener('click',()=>{
   if(!winner)return;
   if(gameMode==='online'){if(netIsHost){rack();sendNet({t:'rack'})}}
@@ -732,13 +735,14 @@ function rack(){
   });
   turn=1;winner=0;ballInHand=false;cpuTimer=0;
   shot.active=false;aimId=null;hideAimVisual();ghostGrp.visible=false;
-  syncCueVisibility();clearPocketFx();
+  syncCueVisibility();clearPocketFx();syncMenuButtonLabel();
   updateHud(gameMode==='online'?`${turnLabel(1)} ブレイクショット`:'ブレイクショット');
   if(gameMode==='online'&&netIsHost)sendSyncState();
 }
 
-// ---------- 通信プレイ＆ロビー（PeerJS WebRTC）----------
+// ---------- 通信プレイ＆ロビー（BroadcastChannel ＋ PeerJS WebRTC）----------
 const ROOM_PREFIX='nineball3d-v1-';
+const ICE_CFG={iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'}]};
 const netStatus=document.getElementById('netStatus'),roomCreateIn=document.getElementById('roomCreateIn'),roomJoinIn=document.getElementById('roomJoinIn'),btnJoinRoom=document.getElementById('btnJoinRoom');
 const lobbyCodeEl=document.getElementById('lobbyCode'),slotP1=document.getElementById('slotP1'),slotP1Dot=document.getElementById('slotP1Dot'),slotP1Role=document.getElementById('slotP1Role'),slotP2=document.getElementById('slotP2'),slotP2Dot=document.getElementById('slotP2Dot'),slotP2Tag=document.getElementById('slotP2Tag'),slotP2Role=document.getElementById('slotP2Role'),lobbyHint=document.getElementById('lobbyHint'),btnLobbyStart=document.getElementById('btnLobbyStart');
 const cleanCode=v=>v.replace(/[^0-9]/g,'').slice(0,4);
@@ -748,14 +752,20 @@ roomJoinIn.addEventListener('input',()=>{
   btnJoinRoom.classList.toggle('ready',roomJoinIn.value.length===4);
 });
 function closeNet(){
-  netLobbyMode=false;peerName='';peerColor='#e0633a';
+  if(netTimer){clearTimeout(netTimer);netTimer=null}
+  if(netConnected)sendNet({t:'bye'});
+  netConnected=false;netLobbyMode=false;peerName='';peerColor='#e0633a';
   if(netConn){try{netConn.close()}catch{}netConn=null}
   if(netPeer){try{netPeer.destroy()}catch{}netPeer=null}
+  if(netBc){try{netBc.close()}catch{}netBc=null}
   netStatus.textContent='';
 }
-function sendNet(obj){if(netConn&&netConn.open)netConn.send(obj)}
+function sendNet(obj){
+  if(netConn&&netConn.open)try{netConn.send(obj)}catch{}
+  else if(netBc&&netConnected)try{netBc.postMessage(obj)}catch{}
+}
 function sendSyncState(){
-  if(!netConn||!netConn.open)return;
+  if(!netConnected)return;
   sendNet({
     t:'sync',
     b:balls.map(x=>[x.x,x.y,x.z,x.settled?1:0,x.mesh.quaternion.x,x.mesh.quaternion.y,x.mesh.quaternion.z,x.mesh.quaternion.w]),
@@ -794,109 +804,182 @@ function startOnlineMatch(){
   if(!tpsMode&&ph>=.05){tg.set(0,-7,0);th=-.7;ph=1.02;rad=175;syncViewBtn()}
   setMenuOpen(false);
 }
-function bindConn(conn,host,code){
-  netConn=conn;netIsHost=host;myPlayer=host?1:2;
+function handleNetData(d){
+  if(!d||typeof d!=='object')return;
+  if(d.t==='hello'){
+    peerName=d.name||'';peerColor=d.color||(netIsHost?'#e0633a':'#2d6ef6');
+    if(netLobbyMode)updateLobbyUI(currentRoomCode,true,netIsHost);
+    else if(hasStarted)updateHud();
+  }else if(d.t==='bye'){
+    handleDisconnect();
+  }else if(d.t==='start'&&!netIsHost){
+    powerMult=d.pow||1;
+    startOnlineMatch();
+  }else if(d.t==='forfeit'){
+    const pName=peerName||(netIsHost?'ゲスト':'ホスト');
+    if(d.toLobby){
+      hasStarted=false;rack();netLobbyMode=true;
+      updateLobbyUI(currentRoomCode,true,netIsHost,`${pName} が降参しました（勝利！）`);
+      setMenuOpen(true,'scrLobby');
+    }else{
+      closeNet();hasStarted=false;rack();
+      setMenuOpen(true,'scrMain');
+      netStatus.textContent=`${pName} が降参して退出しました`;
+    }
+  }else if(d.t==='sync'&&!netIsHost){
+    d.b.forEach((arr,i)=>{
+      const b=balls[i];
+      b.x=arr[0];b.y=arr[1];b.z=arr[2];b.settled=!!arr[3];
+      b.mesh.position.set(b.x,b.y,b.z);
+      b.mesh.quaternion.set(arr[4],arr[5],arr[6],arr[7]);
+      b.mesh.visible=!b.settled;
+    });
+    const prevBih=ballInHand;
+    turn=d.turn;winner=d.winner;ballInHand=d.bih;lockedTarget=d.lt;shot.active=!!d.sa;
+    if(ballInHand&&turn===myPlayer&&!prevBih){
+      ghostGrp.position.set(balls[0].x,BALL_Y,balls[0].z);ghostGrp.visible=true;
+    }else if(!ballInHand){ghostGrp.visible=false}
+    syncCueVisibility();
+    if(!isFxPlaying())updateHud(d.msg);
+  }else if(d.t==='fx'&&!netIsHost){
+    triggerPocketFx(d.nums,d.afterText);
+  }else if(d.t==='rack'&&!netIsHost){
+    rack();
+  }else if(d.t==='place'&&netIsHost&&turn===2&&ballInHand){
+    tryPlaceCueBall(d.x,d.z);
+    sendSyncState();
+  }else if(d.t==='shot'&&netIsHost&&turn===2&&!shot.active&&allStopped()){
+    tipX=d.tipX||0;tipY=d.tipY||0;
+    fireShot(d.dx,d.dz,d.spd);
+    sendSyncState();
+  }
+}
+function handleDisconnect(){
+  if(!netConnected)return;
+  netConnected=false;netConn=null;
+  if(netLobbyMode){
+    peerName='';peerColor='#e0633a';
+    updateLobbyUI(currentRoomCode,false,netIsHost);
+    if(!netIsHost){closeNet();netStatus.textContent='ホストとの接続が切れました';showScreen('scrMain')}
+  }else if(gameMode==='online'&&hasStarted){
+    updateHud('相手との通信が切断されました');
+  }
+}
+function activateTransport(kind,conn,bc,host,code){
+  if(netConnected)return;
+  if(netTimer){clearTimeout(netTimer);netTimer=null}
+  netConnected=true;netIsHost=host;myPlayer=host?1:2;netLobbyMode=true;
+  if(kind==='peer'){
+    netConn=conn;
+    if(netBc){try{netBc.close()}catch{}netBc=null}
+    conn.on('data',handleNetData);
+    conn.on('close',handleDisconnect);
+  }else{
+    netBc=bc;
+    if(netPeer){try{netPeer.destroy()}catch{}netPeer=null}
+    bc.onmessage=ev=>handleNetData(ev.data);
+  }
   sendNet({t:'hello',name:myName,color:myColor});
-  conn.on('data',d=>{
-    if(!d||typeof d!=='object')return;
-    if(d.t==='hello'){
-      peerName=d.name||'';peerColor=d.color||(host?'#e0633a':'#2d6ef6');
-      if(netLobbyMode)updateLobbyUI(currentRoomCode,true,netIsHost);
-      else if(hasStarted)updateHud();
-    }else if(d.t==='start'&&!netIsHost){
-      powerMult=d.pow||1;
-      startOnlineMatch();
-    }else if(d.t==='forfeit'){
-      const pName=peerName||(host?'ゲスト':'ホスト');
-      if(d.toLobby){
-        hasStarted=false;rack();netLobbyMode=true;
-        updateLobbyUI(currentRoomCode,true,netIsHost,`${pName} が降参しました（勝利！）`);
-        setMenuOpen(true,'scrLobby');
-      }else{
-        closeNet();hasStarted=false;rack();
-        setMenuOpen(true,'scrMain');
-        netStatus.textContent=`${pName} が降参して退出しました`;
-      }
-    }else if(d.t==='sync'&&!netIsHost){
-      d.b.forEach((arr,i)=>{
-        const b=balls[i];
-        b.x=arr[0];b.y=arr[1];b.z=arr[2];b.settled=!!arr[3];
-        b.mesh.position.set(b.x,b.y,b.z);
-        b.mesh.quaternion.set(arr[4],arr[5],arr[6],arr[7]);
-        b.mesh.visible=!b.settled;
-      });
-      const prevBih=ballInHand;
-      turn=d.turn;winner=d.winner;ballInHand=d.bih;lockedTarget=d.lt;shot.active=!!d.sa;
-      if(ballInHand&&turn===myPlayer&&!prevBih){
-        ghostGrp.position.set(balls[0].x,BALL_Y,balls[0].z);ghostGrp.visible=true;
-      }else if(!ballInHand){ghostGrp.visible=false}
-      syncCueVisibility();
-      if(!isFxPlaying())updateHud(d.msg);
-    }else if(d.t==='fx'&&!netIsHost){
-      triggerPocketFx(d.nums,d.afterText);
-    }else if(d.t==='rack'&&!netIsHost){
-      rack();
-    }else if(d.t==='place'&&netIsHost&&turn===2&&ballInHand){
-      tryPlaceCueBall(d.x,d.z);
-      sendSyncState();
-    }else if(d.t==='shot'&&netIsHost&&turn===2&&!shot.active&&allStopped()){
-      tipX=d.tipX||0;tipY=d.tipY||0;
-      fireShot(d.dx,d.dz,d.spd);
-      sendSyncState();
-    }
-  });
-  conn.on('close',()=>{
-    netConn=null;
-    if(netLobbyMode){
-      peerName='';peerColor='#e0633a';
-      updateLobbyUI(currentRoomCode,false,host);
-      if(!host){closeNet();netStatus.textContent='ホストとの接続が切れました';showScreen('scrMain')}
-    }else if(gameMode==='online'&&hasStarted){
-      updateHud('相手との通信が切断されました');
-    }
-  });
-  netLobbyMode=true;
   updateLobbyUI(code,true,host);
   showScreen('scrLobby');
+  netStatus.textContent='';
 }
+addEventListener('beforeunload',()=>{if(netConnected)sendNet({t:'bye'})});
+
 document.getElementById('btnCreateRoom').addEventListener('click',()=>{
-  if(typeof Peer==='undefined'){netStatus.textContent='オフラインのため通信プレイを利用できません';return}
   closeNet();
   let code=cleanCode(roomCreateIn.value);
   if(!code)code=String(1000+Math.floor(Math.random()*9000));
   else code=code.padStart(4,'0');
   roomCreateIn.value=code;
-  netStatus.textContent=`部屋 ${code} を作成中...`;
-  const peer=new Peer(ROOM_PREFIX+code);
-  netPeer=peer;
-  peer.on('open',()=>{
-    netIsHost=true;netLobbyMode=true;
-    updateLobbyUI(code,false,true);
-    showScreen('scrLobby');
-    netStatus.textContent='';
-  });
-  peer.on('connection',conn=>{conn.on('open',()=>bindConn(conn,true,code))});
-  peer.on('error',err=>{
-    netStatus.textContent=err.type==='unavailable-id'?'その部屋番号は使用中です':'通信サーバーに接続できませんでした';
-  });
+  netIsHost=true;netLobbyMode=true;
+  updateLobbyUI(code,false,true);
+  showScreen('scrLobby');
+  netStatus.textContent='';
+
+  if(typeof BroadcastChannel!=='undefined'){
+    const bc=new BroadcastChannel('nineball3d-bc-'+code);
+    netBc=bc;
+    bc.onmessage=ev=>{
+      if(!netConnected&&ev.data&&ev.data.t==='bc_join'){
+        bc.postMessage({t:'bc_accept'});
+        activateTransport('bc',null,bc,true,code);
+      }
+    };
+  }
+  if(typeof Peer!=='undefined'){
+    const peer=new Peer(ROOM_PREFIX+code,{config:ICE_CFG});
+    netPeer=peer;
+    peer.on('connection',conn=>{
+      let done=false;
+      const go=()=>{if(!done&&!netConnected){done=true;activateTransport('peer',conn,null,true,code)}};
+      if(conn.open)go();
+      conn.on('open',go);
+      const iv=setInterval(()=>{if(done||netConnected||netPeer!==peer){clearInterval(iv);return}if(conn.open)go()},150);
+    });
+    peer.on('error',err=>{
+      if(!netConnected&&netLobbyMode){
+        lobbyHint.textContent=err.type==='unavailable-id'
+          ?'この番号はネット上で使用中です（別番号を推奨・同一端末内なら参加可能）'
+          :'同一ブラウザ内待機中（外部ネット接続エラー）';
+      }
+    });
+  }
 });
+
 btnJoinRoom.addEventListener('click',()=>{
-  if(typeof Peer==='undefined'){netStatus.textContent='オフラインのため通信プレイを利用できません';return}
   const code=cleanCode(roomJoinIn.value);
   if(code.length<4){netStatus.textContent='4桁の部屋番号を入力してください';return}
   closeNet();
   netStatus.textContent=`部屋 ${code} に接続中...`;
-  const peer=new Peer();
-  netPeer=peer;
-  peer.on('open',()=>{
-    const conn=peer.connect(ROOM_PREFIX+code,{reliable:true});
-    conn.on('open',()=>bindConn(conn,false,code));
-    conn.on('error',()=>{netStatus.textContent='部屋に接続できませんでした'});
-  });
-  peer.on('error',()=>{netStatus.textContent='部屋が見つからないか接続できませんでした'});
+
+  netTimer=setTimeout(()=>{
+    if(!netConnected){
+      closeNet();
+      netStatus.textContent='接続できませんでした（部屋番号や通信環境をご確認ください）';
+    }
+  },12000);
+
+  if(typeof BroadcastChannel!=='undefined'){
+    const bc=new BroadcastChannel('nineball3d-bc-'+code);
+    netBc=bc;
+    bc.onmessage=ev=>{
+      if(!netConnected&&ev.data&&ev.data.t==='bc_accept'){
+        activateTransport('bc',null,bc,false,code);
+      }
+    };
+    bc.postMessage({t:'bc_join'});
+  }
+
+  if(typeof Peer!=='undefined'){
+    const peer=new Peer({config:ICE_CFG});
+    netPeer=peer;
+    peer.on('open',()=>{
+      if(netConnected||netPeer!==peer)return;
+      const conn=peer.connect(ROOM_PREFIX+code,{serialization:'json'});
+      let done=false;
+      const go=()=>{if(!done&&!netConnected){done=true;activateTransport('peer',conn,null,false,code)}};
+      if(conn.open)go();
+      conn.on('open',go);
+      const iv=setInterval(()=>{if(done||netConnected||netPeer!==peer){clearInterval(iv);return}if(conn.open)go()},150);
+      conn.on('error',()=>{});
+    });
+    peer.on('error',err=>{
+      setTimeout(()=>{
+        if(!netConnected&&netPeer===peer){
+          closeNet();
+          netStatus.textContent=err.type==='peer-unavailable'?'その部屋番号は見つかりませんでした':'通信サーバーに接続できませんでした';
+        }
+      },450);
+    });
+  }else if(typeof BroadcastChannel==='undefined'){
+    clearTimeout(netTimer);netTimer=null;
+    netStatus.textContent='通信機能を利用できません';
+  }
 });
+
 btnLobbyStart.addEventListener('click',()=>{
-  if(!netIsHost||!netConn||!netConn.open)return;
+  if(!netIsHost||!netConnected)return;
   sendNet({t:'start',pow:powerMult});
   startOnlineMatch();
 });
@@ -948,14 +1031,20 @@ document.querySelectorAll('[data-start]').forEach(b=>b.addEventListener('click',
   setMenuOpen(false);
 }));
 
-// ポーズメニュー（再開 / 降参して戻る / 降参して退出）
-document.getElementById('menuBtn').addEventListener('click',()=>setMenuOpen(true,'scrPause'));
+function triggerMenuOrExit(){
+  if(gameMode==='solo'){
+    hasStarted=false;rack();setMenuOpen(true,'scrMain');
+  }else{
+    setMenuOpen(true,'scrPause');
+  }
+}
+menuBtn.addEventListener('click',triggerMenuOrExit);
 document.getElementById('btnPauseResume').addEventListener('click',()=>setMenuOpen(false));
 document.getElementById('btnPauseForfeitBack').addEventListener('click',()=>{
   if(gameMode==='online'){
     sendNet({t:'forfeit',toLobby:true});
     hasStarted=false;rack();
-    if(netConn&&netConn.open){
+    if(netConnected){
       netLobbyMode=true;
       updateLobbyUI(currentRoomCode,true,netIsHost,'降参しました（ロビーへ戻りました）');
       showScreen('scrLobby');
@@ -975,7 +1064,10 @@ document.getElementById('btnPauseForfeitExit').addEventListener('click',()=>{
 });
 addEventListener('keydown',e=>{
   if(e.target&&e.target.tagName==='INPUT')return;
-  if(e.key==='Escape'&&hasStarted&&!isFxPlaying())setMenuOpen(!menuOpen,'scrPause');
+  if(e.key==='Escape'&&hasStarted&&!isFxPlaying()){
+    if(menuOpen)setMenuOpen(false);
+    else triggerMenuOrExit();
+  }
 });
 
 // オプション制御
@@ -1095,8 +1187,8 @@ function applyPersonalSettings(){
   document.querySelectorAll('#colorSwatches .sw').forEach(sw=>sw.classList.toggle('on',sw.dataset.col.toLowerCase()===myColor.toLowerCase()));
   cueAccentMat.color.set(myColor);
   try{localStorage.setItem('billiard_my_name',myName);localStorage.setItem('billiard_my_color',myColor)}catch{}
-  if(netLobbyMode)updateLobbyUI(currentRoomCode,!!(netConn&&netConn.open),netIsHost);
-  if(netConn&&netConn.open)sendNet({t:'hello',name:myName,color:myColor});
+  if(netLobbyMode)updateLobbyUI(currentRoomCode,netConnected,netIsHost);
+  if(netConnected)sendNet({t:'hello',name:myName,color:myColor});
   updateHud();
 }
 myNameIn.addEventListener('input',()=>{myName=myNameIn.value.trim().slice(0,12);applyPersonalSettings()});
@@ -1604,7 +1696,6 @@ const up=e=>{
 box.addEventListener('pointerup',up);box.addEventListener('pointercancel',up);
 box.addEventListener('wheel',e=>{if(menuOpen)return;e.preventDefault();rad=Math.min(380,Math.max(25,rad*(1+e.deltaY*.001)))},{passive:false});
 addEventListener('keydown',e=>{
-  if(e.target&&e.target.tagName==='INPUT')return;
   if((e.key==='r'||e.key==='R')&&!menuOpen&&!isFxPlaying()){
     if(gameMode==='online'){if(netIsHost){rack();sendNet({t:'rack'})}}
     else rack();
