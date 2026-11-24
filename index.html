@@ -20,8 +20,9 @@ canvas{display:block;width:100%;height:100%}
 #w.menu-open #topBar,#w.menu-open #spinWrap{opacity:0;visibility:hidden;pointer-events:none}
 #w.ui-hidden #views,#w.ui-hidden #hud{opacity:0;visibility:hidden;pointer-events:none}
 
-/* 上部統合バー（必ず横並び：ボタン群 ＋ 現状表示 ＋ スマホ用非表示ボタン） */
-#topBar{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));left:calc(10px + env(safe-area-inset-left,0px));right:calc(10px + env(safe-area-inset-right,0px));display:flex;align-items:center;gap:10px;z-index:2;pointer-events:none;flex-wrap:nowrap}
+/* 上部統合バー（左右の余白を均等にして中央配置） */
+#topBar{--sx:max(env(safe-area-inset-left,0px),env(safe-area-inset-right,0px));position:absolute;top:calc(10px + env(safe-area-inset-top,0px));left:calc(10px + var(--sx));right:calc(10px + var(--sx));display:flex;align-items:center;justify-content:space-between;gap:10px;z-index:2;pointer-events:none;flex-wrap:nowrap}
+#w.force-land #topBar{--sx:max(env(safe-area-inset-top,0px),env(safe-area-inset-bottom,0px));top:calc(10px + env(safe-area-inset-right,0px));left:calc(10px + var(--sx));right:calc(10px + var(--sx));gap:6px}
 #views,#hud,#uiToggle{pointer-events:auto}
 #views{display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:nowrap}
 #views button,#spinBtns button,#spinToggle,#uiToggle{appearance:none;border:1px solid var(--bd);background:var(--panel);color:var(--panel-fg);border-radius:8px;font:600 12px/1.2 inherit;padding:7px 10px;cursor:pointer;backdrop-filter:blur(8px);user-select:none;-webkit-user-select:none;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap}
@@ -31,7 +32,7 @@ canvas{display:block;width:100%;height:100%}
 #views button:not(:disabled):hover,#spinBtns button:hover,#spinToggle:hover,#uiToggle:hover{filter:brightness(1.08)}
 
 /* 状況表示バー */
-#hud{flex:0 0 660px;margin:0 auto;height:44px;box-sizing:border-box;display:flex;align-items:center;gap:10px;padding:0 14px;border-radius:12px;border:1px solid var(--bd);background:var(--panel);color:var(--panel-fg);backdrop-filter:blur(8px);box-shadow:0 4px 16px rgba(0,0,0,.2);min-width:0}
+#hud{flex:1 1 0;max-width:660px;margin:0 auto;height:44px;box-sizing:border-box;display:flex;align-items:center;gap:10px;padding:0 14px;border-radius:12px;border:1px solid var(--bd);background:var(--panel);color:var(--panel-fg);backdrop-filter:blur(8px);box-shadow:0 4px 16px rgba(0,0,0,.2);min-width:0}
 #hud.win{cursor:pointer}
 #turnBadge{padding:4px 9px;border-radius:6px;font:700 12px/1.2 inherit;color:#fff;background:#1e6b58;flex-shrink:0;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #targetBadge{display:flex;align-items:center;gap:5px;font:700 12px/1 inherit;flex-shrink:0}
@@ -39,7 +40,7 @@ canvas{display:block;width:100%;height:100%}
 #msg{flex:1;min-width:0;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* スマホ専用 UI非表示トグルボタン */
-#uiToggle{display:none;flex-shrink:0;width:34px;height:34px;padding:0;border-radius:8px;margin-left:auto}
+#uiToggle{display:none;flex-shrink:0;width:34px;height:34px;padding:0;border-radius:8px}
 body.is-mobile #uiToggle{display:inline-flex}
 #w.ui-hidden #uiToggle{opacity:.5}
 
@@ -48,17 +49,16 @@ body.is-mobile #uiToggle{display:inline-flex}
   #views{gap:4px}
   #views button{padding:5px 7px;font-size:11px;border-radius:7px}
   #vRot90{padding:4px 6px}
-  #hud{flex:1 1 0;margin:0;height:34px;padding:0 9px;gap:6px;border-radius:9px}
+  #hud{margin:0;height:34px;padding:0 9px;gap:6px;border-radius:9px}
   #turnBadge{padding:3px 7px;font-size:11px;max-width:74px}
   #nextBallCanvas{width:24px;height:24px}
   #targetBadge{font-size:11px;gap:4px}
   #msg{font-size:11px}
 }
-#w.force-land #topBar{gap:6px}
 #w.force-land #views{gap:4px}
 #w.force-land #views button{padding:5px 7px;font-size:11px;border-radius:7px}
 #w.force-land #vRot90{padding:4px 6px}
-#w.force-land #hud{flex:1 1 0;margin:0;height:34px;padding:0 9px;gap:6px;border-radius:9px}
+#w.force-land #hud{margin:0;height:34px;padding:0 9px;gap:6px;border-radius:9px}
 #w.force-land #turnBadge{padding:3px 7px;font-size:11px;max-width:74px}
 #w.force-land #nextBallCanvas{width:24px;height:24px}
 #w.force-land #targetBadge{font-size:11px;gap:4px}
@@ -86,10 +86,12 @@ body.is-mobile #uiToggle{display:inline-flex}
   #spinBtns button{padding:4px 6px;min-width:22px;font-size:10px}
 }
 
-/* メニュー画面 */
+/* メニュー画面（ゲーム中ポーズ時はその場で靄をかける） */
 #menuOverlay{position:absolute;inset:0;z-index:6;display:none;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;overflow-y:auto;background:#1e1711}
 #menuOverlay.open{display:flex}
 #menuOverlay.no-bg{background:rgba(24,18,13,.66);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#menuOverlay.in-game{background:radial-gradient(circle at 50% 48%,rgba(235,242,240,.16),rgba(12,16,14,.60));backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+#menuOverlay.in-game #menuBg,#menuOverlay.in-game #menuVignette{display:none!important}
 #menuBg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;pointer-events:none}
 #menuVignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 50%,rgba(20,15,11,.40),rgba(10,8,5,.78))}
 #menuOverlay.no-bg #menuVignette{display:none}
@@ -131,9 +133,11 @@ body.is-mobile #uiToggle{display:inline-flex}
 
 /* オプション＆個人設定 */
 .optRow{display:flex;flex-direction:column;align-items:center;gap:5px;width:100%;margin:5px 0}
+.optRow.locked{opacity:.4;pointer-events:none}
 .optSeg{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 .optSeg button{appearance:none;border:2px solid rgba(255,255,255,.35);background:rgba(30,24,18,.48);color:rgba(255,255,255,.88);border-radius:999px;padding:7px 16px;font:700 12px/1.2 inherit;cursor:pointer}
 .optSeg button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+#optLockNote{min-height:16px;font-size:11px;font-weight:600;color:#ffe6a8;margin-top:2px}
 .nameIn{width:min(250px,80%);height:44px;box-sizing:border-box;border-radius:12px;border:2px solid rgba(255,255,255,.78);background:rgba(32,26,20,.62);color:#fff;text-align:center;font:700 16px/1 inherit;letter-spacing:.06em;outline:none;padding:0 14px}
 .nameIn:focus{border-color:var(--accent)}
 .swatchRow{display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;max-width:340px}
@@ -325,7 +329,7 @@ body.is-mobile #uiToggle{display:inline-flex}
     <!-- 5. オプション -->
     <div id="scrOpt" class="mScr">
       <h2 class="titleSm">オプション</h2>
-      <div class="optRow">
+      <div id="optThemeRow" class="optRow">
         <div class="mSubLabel tight">表示テーマ</div>
         <div class="optSeg" id="themeSeg">
           <button type="button" data-theme="auto" class="on">自動</button>
@@ -333,7 +337,7 @@ body.is-mobile #uiToggle{display:inline-flex}
           <button type="button" data-theme="light">ライト</button>
         </div>
       </div>
-      <div class="optRow">
+      <div id="optPowerRow" class="optRow">
         <div class="mSubLabel tight">ショットの強さ</div>
         <div class="optSeg" id="powerSeg">
           <button type="button" data-pow="0.75">弱め</button>
@@ -341,7 +345,7 @@ body.is-mobile #uiToggle{display:inline-flex}
           <button type="button" data-pow="1.25">強め</button>
         </div>
       </div>
-      <div class="optRow">
+      <div id="optGuideRow" class="optRow">
         <div class="mSubLabel tight">ガイド</div>
         <div class="optSeg" id="guideSeg">
           <button type="button" data-guide="0">なし</button>
@@ -350,7 +354,8 @@ body.is-mobile #uiToggle{display:inline-flex}
           <button type="button" data-guide="3">大</button>
         </div>
       </div>
-      <div class="mStack" style="margin-top:10px">
+      <div id="optLockNote"></div>
+      <div class="mStack" style="margin-top:8px">
         <button id="btnOptPersonal" class="pill pill-outline" type="button">個人設定</button>
       </div>
       <button id="btnOptBack" class="mLink" type="button">もどる</button>
@@ -408,9 +413,9 @@ const FLOOR_Y=-30;
 
 // ---------- 物理定数 ----------
 const G=386.0886,MU_SLIDE=.20,MU_ROLL=.014,MU_SPIN=.045,E_BALL=.95,MU_BB=.03*1.3,E_CUSH=.80,MU_CUSH=.09*1.3,BASE_SHOT_SPD=155.4*1.3,SPIN_SCALE=.6*1.3;
-let powerMult=1,guideMode=1,optBackScreen='scrLocal';
+let powerMult=1,guideMode=1,themeMode='auto',optBackScreen='scrLocal';
 
-// ---------- スマホ判定・横画面＆全画面強制・UI表示切替 ----------
+// ---------- スマホ判定・横画面＆全画面強制 ----------
 const isMobileDevice=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&Math.min(screen.width,screen.height)<=900);
 if(isMobileDevice)document.body.classList.add('is-mobile');
 let mobileLandActive=false;
@@ -821,7 +826,7 @@ function updatePocketFx(dt){
 
 // ---------- 9ボール ゲーム進行・ルール管理 ----------
 const hudEl=document.getElementById('hud'),turnBadge=document.getElementById('turnBadge'),targetNum=document.getElementById('targetNum'),msgEl=document.getElementById('msg'),targetBadge=document.getElementById('targetBadge'),menuBtn=document.getElementById('menuBtn');
-let gameMode='2p',hasStarted=false,menuOpen=true,turn=1,winner=0,ballInHand=false,cpuTimer=0;
+let gameMode='2p',hasStarted=false,menuOpen=true,turn=1,winner=0,ballInHand=0,cpuTimer=0,turnSeq=0;
 let sunkBy={1:[],2:[]};
 let myPlayer=1,netMqtt=null,netBc=null,netConnected=false,netIsHost=false,netLobbyMode=false,netTimer=null,netRetryTimer=null,syncAcc=0,aimSyncAcc=0,ghostSyncAcc=0,lastHudMsg='ブレイクショット',guestSid=null;
 const mySid='nb_'+Math.random().toString(36).slice(2,10);
@@ -903,8 +908,9 @@ function rack(){
     b.mesh.visible=true;b.mesh.position.set(b.x,b.y,b.z);
     b.mesh.rotation.set(rnd()*PI,rnd()*PI,rnd()*PI);
   });
-  turn=1;winner=0;ballInHand=false;cpuTimer=0;sunkBy={1:[],2:[]};
-  shot.active=false;aimId=null;hideAimVisual();ghostGrp.visible=false;
+  turn=1;winner=0;ballInHand=0;cpuTimer=0;sunkBy={1:[],2:[]};
+  if(gameMode!=='online'||netIsHost)turnSeq++;
+  shot.active=false;aimId=null;tapInfo=null;hideAimVisual();ghostGrp.visible=false;
   syncCueVisibility();clearPocketFx();closeResultOverlay();syncMenuButtonLabel();
   updateHud(gameMode==='online'?`${turnLabel(1)} ブレイクショット`:'ブレイクショット');
   if(gameMode==='online'&&netIsHost)sendSyncState('sync');
@@ -976,7 +982,7 @@ function closeNet(){
   if(netTimer){clearTimeout(netTimer);netTimer=null}
   if(netRetryTimer){clearInterval(netRetryTimer);netRetryTimer=null}
   if(netConnected)sendNet({t:'bye'});
-  netConnected=false;netLobbyMode=false;peerName='';peerColor='#e0633a';guestSid=null;
+  netConnected=false;netLobbyMode=false;peerName='';peerColor='#e0633a';guestSid=null;turnSeq=0;
   if(netMqtt){try{netMqtt.close()}catch{}netMqtt=null}
   if(netBc){try{netBc.close()}catch{}netBc=null}
   netStatus.textContent='';
@@ -1001,7 +1007,7 @@ function applyBalls(arr){
 function sendSyncState(type='sync',extra){
   if(!netConnected)return;
   sendNet({
-    t:type,
+    t:type,seq:turnSeq,
     b:packBalls(),
     turn,winner,bih:ballInHand,lt:lockedTarget,sunkBy,msg:lastHudMsg,sa:shot.active,
     ...extra
@@ -1039,13 +1045,30 @@ function startOnlineMatch(){
   if(!tpsMode&&ph>=.05){tg.set(0,-7,0);th=-.7;ph=1.02;rad=175;syncViewBtn()}
   setMenuOpen(false);
 }
+function applyRemoteOpts(d){
+  if(typeof d.pow==='number'){
+    powerMult=d.pow;
+    document.querySelectorAll('#powerSeg button').forEach(x=>x.classList.toggle('on',parseFloat(x.dataset.pow)===powerMult));
+  }
+  if(typeof d.guide==='number'){
+    guideMode=d.guide;
+    document.querySelectorAll('#guideSeg button').forEach(x=>x.classList.toggle('on',parseInt(x.dataset.guide,10)===guideMode));
+  }
+  if(typeof d.theme==='string'){
+    themeMode=d.theme;
+    if(themeMode==='auto')document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme',themeMode);
+    document.querySelectorAll('#themeSeg button').forEach(x=>x.classList.toggle('on',x.dataset.theme===themeMode));
+    syncEnvColor();
+  }
+}
 function handleNetData(d){
   if(!d||typeof d!=='object'||d.sid===mySid)return;
   if(d.t==='join_req'&&netIsHost&&netLobbyMode){
     if(!netConnected||guestSid===d.sid){
       netConnected=true;guestSid=d.sid;
       peerName=d.name||'';peerColor=d.color||'#e0633a';
-      sendNet({t:'join_ack',name:myName,color:myColor});
+      sendNet({t:'join_ack',name:myName,color:myColor,pow:powerMult,guide:guideMode,theme:themeMode});
       updateLobbyUI(currentRoomCode,true,true);
     }
     return;
@@ -1055,6 +1078,7 @@ function handleNetData(d){
     if(netRetryTimer){clearInterval(netRetryTimer);netRetryTimer=null}
     netConnected=true;netLobbyMode=true;
     peerName=d.name||'';peerColor=d.color||'#2d6ef6';
+    applyRemoteOpts(d);
     sendNet({t:'hello',name:myName,color:myColor});
     updateLobbyUI(currentRoomCode,true,false);
     showScreen('scrLobby');
@@ -1065,10 +1089,12 @@ function handleNetData(d){
     peerName=d.name||'';peerColor=d.color||(netIsHost?'#e0633a':'#2d6ef6');
     if(netLobbyMode)updateLobbyUI(currentRoomCode,true,netIsHost);
     else if(hasStarted)updateHud();
+  }else if(d.t==='opt'&&!netIsHost){
+    applyRemoteOpts(d);
   }else if(d.t==='bye'){
     handleDisconnect();
   }else if(d.t==='start'&&!netIsHost){
-    powerMult=d.pow||1;
+    applyRemoteOpts(d);
     startOnlineMatch();
   }else if(d.t==='forfeit'){
     const pName=peerName||(netIsHost?'ゲスト':'ホスト');
@@ -1084,7 +1110,7 @@ function handleNetData(d){
   }else if(d.t==='req_continue'&&netIsHost&&winner){
     resultNote.textContent=`${peerName||'相手'} が「続ける」を希望しています`;
   }else if(d.t==='aim'){
-    if(hasStarted&&!isMyTurn()&&!shot.active){
+    if(hasStarted&&!isMyTurn()&&!shot.active&&!ballInHand&&!winner&&allStopped()&&(d.seq===undefined||d.seq===turnSeq)){
       const prevTipX=tipX,prevTipY=tipY;
       tipX=d.tipX||0;tipY=d.tipY||0;
       updateAimVisual(d.dx,d.dz,d.len);
@@ -1093,13 +1119,15 @@ function handleNetData(d){
   }else if(d.t==='aim_end'){
     if(!isMyTurn())hideAimVisual();
   }else if(d.t==='ghost'){
-    if(hasStarted&&!isMyTurn()&&ballInHand){
+    if(hasStarted&&!isMyTurn()&&ballInHand===turn&&!shot.active&&allStopped()&&(d.seq===undefined||d.seq===turnSeq)){
       ghostGrp.position.set(d.x,BALL_Y,d.z);
       ghostMat.color.setHex(d.ok?0xffffff:0xff6666);ghostMat.opacity=d.ok?.55:.32;
       ghostRingMat.color.setHex(d.ok?0x88ffbb:0xff5555);
       ghostGrp.visible=true;syncCueVisibility();
     }
   }else if(d.t==='fire'&&!netIsHost){
+    if(d.seq!==undefined&&d.seq<turnSeq)return;
+    if(d.seq!==undefined)turnSeq=d.seq;
     hideAimVisual();
     balls[0].x=d.cx;balls[0].z=d.cz;balls[0].mesh.position.set(d.cx,BALL_Y,d.cz);
     const prevTipX=tipX,prevTipY=tipY;
@@ -1107,13 +1135,19 @@ function handleNetData(d){
     fireShot(d.dx,d.dz,d.spd);
     tipX=prevTipX;tipY=prevTipY;
   }else if((d.t==='sync'||d.t==='resolved')&&!netIsHost){
+    if(d.seq!==undefined&&d.seq<turnSeq)return;
+    if(d.seq!==undefined)turnSeq=d.seq;
+    if(d.t==='resolved'||d.sa)hideAimVisual();
+    tapInfo=null;aimId=null;
     applyBalls(d.b);
     const prevBih=ballInHand;
     turn=d.turn;winner=d.winner;ballInHand=d.bih;lockedTarget=d.lt;shot.active=!!d.sa;
     if(d.sunkBy)sunkBy=d.sunkBy;
-    if(ballInHand&&turn===myPlayer&&!prevBih){
-      ghostGrp.position.set(balls[0].x,BALL_Y,balls[0].z);ghostGrp.visible=true;
-    }else if(!ballInHand){ghostGrp.visible=false}
+    if(ballInHand===myPlayer&&prevBih!==myPlayer){
+      ghostGrp.position.set(balls[0].x,BALL_Y,balls[0].z);
+      ghostMat.color.setHex(0xffffff);ghostMat.opacity=.55;ghostRingMat.color.setHex(0x88ffbb);
+      ghostGrp.visible=true;
+    }else if(ballInHand!==myPlayer){ghostGrp.visible=false}
     syncCueVisibility();
     if(d.fx&&d.fx.length>0){
       triggerPocketFx(d.fx,d.msg);
@@ -1123,14 +1157,20 @@ function handleNetData(d){
     }
   }else if(d.t==='rack'&&!netIsHost){
     rack();
-  }else if(d.t==='place'&&netIsHost&&turn===2&&ballInHand){
-    tryPlaceCueBall(d.x,d.z);
-    sendSyncState('sync');
-  }else if(d.t==='shot'&&netIsHost&&turn===2&&!shot.active&&allStopped()){
+  }else if(d.t==='place'&&netIsHost&&turn===2&&ballInHand===2&&!shot.active&&allStopped()){
+    if(d.seq!==undefined&&d.seq!==turnSeq){sendSyncState('sync');return}
+    if(tryPlaceCueBall(d.x,d.z)){
+      sendSyncState('sync');
+    }else{
+      sendSyncState('sync');
+    }
+  }else if(d.t==='shot'&&netIsHost&&turn===2&&!shot.active&&!ballInHand&&allStopped()){
+    if(d.seq!==undefined&&d.seq!==turnSeq){sendSyncState('sync');return}
+    hideAimVisual();
     const prevTipX=tipX,prevTipY=tipY;
     tipX=d.tipX||0;tipY=d.tipY||0;
     fireShot(d.dx,d.dz,d.spd);
-    sendNet({t:'fire',cx:r3(balls[0].x),cz:r3(balls[0].z),dx:d.dx,dz:d.dz,spd:d.spd,tipX,tipY});
+    sendNet({t:'fire',seq:turnSeq,cx:r3(balls[0].x),cz:r3(balls[0].z),dx:d.dx,dz:d.dz,spd:d.spd,tipX,tipY});
     tipX=prevTipX;tipY=prevTipY;
   }
 }
@@ -1216,7 +1256,7 @@ btnJoinRoom.addEventListener('click',()=>{
 
 btnLobbyStart.addEventListener('click',()=>{
   if(!netIsHost||!netConnected)return;
-  sendNet({t:'start',pow:powerMult});
+  sendNet({t:'start',pow:powerMult,guide:guideMode,theme:themeMode});
   startOnlineMatch();
 });
 document.getElementById('btnLobbyLeave').addEventListener('click',()=>{
@@ -1226,14 +1266,23 @@ document.getElementById('btnLobbyLeave').addEventListener('click',()=>{
 // ---------- メニュー＆個人設定・ポーズメニュー・UI非表示制御 ----------
 const menuOverlay=document.getElementById('menuOverlay'),menuBg=document.getElementById('menuBg');
 const myNameIn=document.getElementById('myNameIn'),myColorIn=document.getElementById('myColorIn'),previewDot=document.getElementById('previewDot'),previewName=document.getElementById('previewName');
+const optThemeRow=document.getElementById('optThemeRow'),optPowerRow=document.getElementById('optPowerRow'),optGuideRow=document.getElementById('optGuideRow'),optLockNote=document.getElementById('optLockNote');
+function syncOptLock(){
+  const locked=netLobbyMode&&!netIsHost;
+  [optThemeRow,optPowerRow,optGuideRow].forEach(el=>el.classList.toggle('locked',locked));
+  optLockNote.textContent=locked?'※個人設定以外の設定はホストのみ変更できます':'';
+}
 function showScreen(id){
   document.querySelectorAll('.mScr').forEach(s=>s.classList.toggle('on',s.id===id));
+  menuOverlay.classList.toggle('in-game',id==='scrPause');
+  if(id==='scrOpt')syncOptLock();
 }
 function setMenuOpen(open,screenId){
   menuOpen=open;
   menuOverlay.classList.toggle('open',open);
   box.classList.toggle('menu-open',open);
   if(open)showScreen(screenId||(hasStarted?'scrPause':'scrTitle'));
+  else menuOverlay.classList.remove('in-game');
 }
 menuBg.addEventListener('error',()=>{menuBg.style.display='none';menuOverlay.classList.add('no-bg')});
 menuBg.addEventListener('load',()=>{menuBg.style.display='block';menuOverlay.classList.remove('no-bg')});
@@ -1317,24 +1366,34 @@ addEventListener('keydown',e=>{
   }
 });
 
-// オプション制御
+// オプション制御（通信時ゲストはロック）
+function sendHostOpts(){
+  if(netLobbyMode&&netIsHost&&netConnected){
+    sendNet({t:'opt',pow:powerMult,guide:guideMode,theme:themeMode});
+  }
+}
 document.getElementById('themeSeg').addEventListener('click',e=>{
+  if(netLobbyMode&&!netIsHost)return;
   const b=e.target.closest('button[data-theme]');if(!b)return;
-  const t=b.dataset.theme;
-  if(t==='auto')document.documentElement.removeAttribute('data-theme');
-  else document.documentElement.setAttribute('data-theme',t);
+  themeMode=b.dataset.theme;
+  if(themeMode==='auto')document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme',themeMode);
   document.querySelectorAll('#themeSeg button').forEach(x=>x.classList.toggle('on',x===b));
-  syncEnvColor();
+  syncEnvColor();sendHostOpts();
 });
 document.getElementById('powerSeg').addEventListener('click',e=>{
+  if(netLobbyMode&&!netIsHost)return;
   const b=e.target.closest('button[data-pow]');if(!b)return;
   powerMult=parseFloat(b.dataset.pow)||1;
   document.querySelectorAll('#powerSeg button').forEach(x=>x.classList.toggle('on',x===b));
+  sendHostOpts();
 });
 document.getElementById('guideSeg').addEventListener('click',e=>{
+  if(netLobbyMode&&!netIsHost)return;
   const b=e.target.closest('button[data-guide]');if(!b)return;
   guideMode=parseInt(b.dataset.guide,10)||0;
   document.querySelectorAll('#guideSeg button').forEach(x=>x.classList.toggle('on',x===b));
+  sendHostOpts();
 });
 
 // ---------- 照準ライン（なし・小・中・大）・2ピースキュー ----------
@@ -1461,13 +1520,13 @@ function findCueSpot(){
   }
   return[-25,0];
 }
-function respawnCueAsGhost(){
+function respawnCueAsGhost(owner){
   const c=balls[0],[ox,oz]=findCueSpot();
   c.x=ox;c.y=BALL_Y;c.z=oz;c.vx=c.vy=c.vz=0;c.wx=c.wy=c.wz=0;c.pocket=null;c.settled=false;
   c.mesh.position.set(ox,BALL_Y,oz);
   ghostGrp.position.set(ox,BALL_Y,oz);
   ghostMat.color.setHex(0xffffff);ghostMat.opacity=.55;ghostRingMat.color.setHex(0x88ffbb);
-  ghostGrp.visible=true;
+  ghostGrp.visible=(gameMode!=='online'||owner===myPlayer);
   syncCueVisibility();
 }
 function applyTableFriction(b,dt){
@@ -1584,6 +1643,8 @@ function collideFloor(b){
 }
 function resolveShot(){
   shot.active=false;
+  aimId=null;tapInfo=null;hideAimVisual();
+  if(gameMode!=='online'||netIsHost)turnSeq++;
   let foul=null;
   if(shot.scratched)foul='手球が落ちました（スクラッチ）';
   else if(shot.jumped.length)foul='球が場外に出ました';
@@ -1602,35 +1663,35 @@ function resolveShot(){
 
   if(gameMode==='solo'){
     if(!foul&&nineIn){
-      winner=1;ballInHand=false;ghostGrp.visible=false;syncCueVisibility();
+      winner=1;ballInHand=0;ghostGrp.visible=false;syncCueVisibility();
       nextText='クリア！';
     }else if(foul){
       if(nineIn||nineOut)spotNineBall();
-      ballInHand=true;respawnCueAsGhost();
+      ballInHand=1;respawnCueAsGhost(1);
       nextText=`ファウル：${foul} → フリーボール`;
     }else if(shot.pocketed.length>0){
-      ballInHand=false;syncCueVisibility();
+      ballInHand=0;syncCueVisibility();
       nextText=`ナイスショット！（${shot.pocketed.join(',')}番イン）`;
     }else{
-      ballInHand=false;syncCueVisibility();
+      ballInHand=0;syncCueVisibility();
       nextText='フリー練習';
     }
   }else{
     if(!foul&&nineIn){
-      winner=turn;ballInHand=false;ghostGrp.visible=false;syncCueVisibility();
+      winner=turn;ballInHand=0;ghostGrp.visible=false;syncCueVisibility();
       nextText=`${turnLabel(turn)} の勝利！`;
     }else if(foul){
       if(nineIn||nineOut)spotNineBall();
       turn=turn===1?2:1;
-      ballInHand=true;
-      respawnCueAsGhost();
+      ballInHand=turn;
+      respawnCueAsGhost(turn);
       nextText=`ファウル：${foul} → ${turnLabel(turn)} フリーボール`;
     }else if(shot.pocketed.length>0){
-      ballInHand=false;syncCueVisibility();
+      ballInHand=0;syncCueVisibility();
       nextText=`ナイスショット！（${shot.pocketed.join(',')}番イン）${turnLabel(turn)} 続行`;
     }else{
       turn=turn===1?2:1;
-      ballInHand=false;syncCueVisibility();
+      ballInHand=0;syncCueVisibility();
       nextText=`${turnLabel(turn)} のターン`;
     }
   }
@@ -1662,7 +1723,7 @@ function runCpuShot(){
   const low=lowestBall();if(!low)return;
   const target=balls[low],c=balls[0];
   let best=null;
-  if(ballInHand){
+  if(ballInHand===2){
     for(const[px,pz]of P){
       const vx=px-target.x,vz=pz-target.z,vl=Math.hypot(vx,vz);if(vl<1e-3)continue;
       const ux=vx/vl,uz=vz/vl,gx=target.x-ux*BALL_R*2,gz=target.z-uz*BALL_R*2;
@@ -1693,11 +1754,13 @@ function runCpuShot(){
 }
 
 function fireShot(dx,dz,spd){
+  hideAimVisual();
   const c=balls[0];
   c.vx=dx*spd;c.vz=dz*spd;c.settled=false;
   const rx=-dz,rz=dx,wMag=2.5*spd/BALL_R*SPIN_SCALE;
   c.wx=-wMag*tipY*rx;c.wz=-wMag*tipY*rz;c.wy=wMag*tipX;
-  ballInHand=false;ghostGrp.visible=false;syncCueVisibility();
+  ballInHand=0;ghostGrp.visible=false;syncCueVisibility();
+  if(gameMode!=='online'||netIsHost)turnSeq++;
   const curTarget=lowestBall();
   lockedTarget=curTarget;
   shot.active=true;shot.targetNum=curTarget;shot.firstHit=null;
@@ -1846,8 +1909,12 @@ function isMyTurn(){
   if(gameMode==='online')return turn===myPlayer;
   return true;
 }
+function canPlaceNow(){
+  const owner=gameMode==='online'?myPlayer:(gameMode==='solo'?1:turn);
+  return !menuOpen&&!winner&&!isFxPlaying()&&!shot.active&&allStopped()&&ballInHand===owner&&isMyTurn();
+}
 function updateGhostCursor(e){
-  if(menuOpen||!isMyTurn()||!ballInHand||winner||!allStopped()||isFxPlaying()||aimId!==null||ptr.size>0||e.target.closest('#topBar,#spinWrap,#resultOverlay')){
+  if(!canPlaceNow()||aimId!==null||ptr.size>0||e.target.closest('#topBar,#spinWrap,#resultOverlay')){
     syncCueVisibility();return;
   }
   if(!tableHit(e)){syncCueVisibility();return}
@@ -1860,7 +1927,7 @@ function updateGhostCursor(e){
     box.style.cursor=ok?'pointer':'not-allowed';
     if(gameMode==='online'&&performance.now()-ghostSyncAcc>65){
       ghostSyncAcc=performance.now();
-      sendNet({t:'ghost',x:r3(hitPt.x),z:r3(hitPt.z),ok});
+      sendNet({t:'ghost',seq:turnSeq,x:r3(hitPt.x),z:r3(hitPt.z),ok});
     }
   }
 }
@@ -1869,7 +1936,8 @@ function tryPlaceCueBall(x,z){
   const c=balls[0];
   c.x=x;c.y=BALL_Y;c.z=z;c.vx=c.vy=c.vz=0;c.wx=c.wy=c.wz=0;c.pocket=null;c.settled=false;
   c.mesh.position.set(c.x,c.y,c.z);
-  ballInHand=false;ghostGrp.visible=false;syncCueVisibility();
+  ballInHand=0;ghostGrp.visible=false;syncCueVisibility();
+  if(gameMode!=='online'||netIsHost)turnSeq++;
   box.style.cursor='grab';
   updateHud(`${turnLabel(turn)} のターン`);
   return true;
@@ -1914,14 +1982,14 @@ function updateAimVisual(dx,dz,len){
 box.addEventListener('pointerdown',e=>{
   if(menuOpen||e.target.closest('#topBar,#spinWrap,#menuOverlay,#resultOverlay')||isFxPlaying())return;
   box.setPointerCapture(e.pointerId);
-  if(ptr.size===0&&!winner&&isMyTurn()&&allStopped()&&!ballInHand&&!balls[0].settled&&balls[0].y>=0&&tableHit(e)){
+  if(ptr.size===0&&!winner&&isMyTurn()&&allStopped()&&!shot.active&&!ballInHand&&!balls[0].settled&&balls[0].y>=0&&tableHit(e)){
     const c=balls[0];
     if(Math.hypot(hitPt.x-c.x,hitPt.z-c.z)<=5.5){
-      aimId=e.pointerId;aimPull.set(0,0,0);ghostGrp.visible=false;syncCueVisibility();return;
+      aimId=e.pointerId;aimPull.set(0,0,0);ghostGrp.visible=false;syncCueVisibility();tapInfo=null;return;
     }
   }
   const[ex,ey]=evXY(e);
-  if(ptr.size===0)tapInfo={id:e.pointerId,x:ex,y:ey,moved:false};
+  if(ptr.size===0&&canPlaceNow())tapInfo={id:e.pointerId,x:ex,y:ey,moved:false};
   else tapInfo=null;
   ptr.set(e.pointerId,[ex,ey]);pd=0;
 });
@@ -1932,7 +2000,7 @@ box.addEventListener('pointermove',e=>{
     aimPull.set(dx,0,dz);updateAimVisual(dx,dz,len);
     if(gameMode==='online'&&performance.now()-aimSyncAcc>65){
       aimSyncAcc=performance.now();
-      sendNet({t:'aim',dx:r3(dx),dz:r3(dz),len:r3(len),tipX:r3(tipX),tipY:r3(tipY)});
+      sendNet({t:'aim',seq:turnSeq,dx:r3(dx),dz:r3(dz),len:r3(len),tipX:r3(tipX),tipY:r3(tipY)});
     }
     return;
   }
@@ -1947,15 +2015,15 @@ box.addEventListener('pointermove',e=>{
 const up=e=>{
   if(e.pointerId===aimId){
     const len=Math.hypot(aimPull.x,aimPull.z);
-    if(len>=.8&&!winner&&!menuOpen&&isMyTurn()){
+    if(len>=.8&&!winner&&!menuOpen&&isMyTurn()&&!shot.active&&!ballInHand&&allStopped()){
       const dx=aimPull.x/len,dz=aimPull.z/len;
       const spd=Math.min(22,len)/22*BASE_SHOT_SPD*powerMult;
       if(gameMode==='online'&&!netIsHost){
-        sendNet({t:'shot',dx:r3(dx),dz:r3(dz),spd:r3(spd),tipX:r3(tipX),tipY:r3(tipY)});
+        sendNet({t:'shot',seq:turnSeq,dx:r3(dx),dz:r3(dz),spd:r3(spd),tipX:r3(tipX),tipY:r3(tipY)});
       }else{
         fireShot(dx,dz,spd);
         if(gameMode==='online'&&netIsHost){
-          sendNet({t:'fire',cx:r3(balls[0].x),cz:r3(balls[0].z),dx:r3(dx),dz:r3(dz),spd:r3(spd),tipX:r3(tipX),tipY:r3(tipY)});
+          sendNet({t:'fire',seq:turnSeq,cx:r3(balls[0].x),cz:r3(balls[0].z),dx:r3(dx),dz:r3(dz),spd:r3(spd),tipX:r3(tipX),tipY:r3(tipY)});
         }
       }
     }else if(gameMode==='online'){
@@ -1963,10 +2031,11 @@ const up=e=>{
     }
     aimId=null;hideAimVisual();return;
   }
-  if(tapInfo&&e.pointerId===tapInfo.id&&!tapInfo.moved&&!menuOpen&&isMyTurn()&&ballInHand&&!winner&&allStopped()&&tableHit(e)){
+  if(tapInfo&&e.pointerId===tapInfo.id&&!tapInfo.moved&&canPlaceNow()&&tableHit(e)){
+    const seqBefore=turnSeq;
     if(gameMode==='online'&&!netIsHost){
       if(tryPlaceCueBall(hitPt.x,hitPt.z)){
-        sendNet({t:'place',x:r3(hitPt.x),z:r3(hitPt.z)});
+        sendNet({t:'place',seq:seqBefore,x:r3(hitPt.x),z:r3(hitPt.z)});
       }
     }else if(tryPlaceCueBall(hitPt.x,hitPt.z)&&gameMode==='online'){
       sendSyncState('sync');
@@ -2004,7 +2073,7 @@ let prev=performance.now();
     syncAcc+=dt;if(syncAcc>=.16){syncAcc=0;sendSyncState('sync')}
   }
   if(menuOpen){
-    th+=dt*.14;
+    if(!hasStarted)th+=dt*.14;
   }else{
     if(tpsMode){
       const c=balls[0],k=Math.min(1,dt*10),ty=(c.y>=0?c.y:BALL_Y)+1.5;
